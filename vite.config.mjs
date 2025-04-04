@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: './vitest.setup.mjs',
   },
   build: {
-    outDir: '../ots_plugin_template/ui', // <-------- TODO: Change this line
+    outDir: '../../PycharmProjects/OTS-SkyFi-Plugin/ots_skyfi_plugin/ui',
     emptyOutDir: true,
   }
 });
