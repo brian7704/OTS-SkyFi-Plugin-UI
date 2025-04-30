@@ -2,6 +2,8 @@ import {ReactElement, useEffect, useState} from "react";
 import axios from '../axios_config';
 import { parseISO, format } from 'date-fns';
 import {routes} from '@/routes'
+import { notifications } from '@mantine/notifications';
+import {IconCheck, IconX} from "@tabler/icons-react";
 import {
     Button,
     Card,
@@ -99,6 +101,27 @@ export default function SkyFi() {
         }
     }, [previewImageUrl]);
 
+    function createDataPackage(id: string) {
+        axios.get(`${packageJson.basename}/${id}/data_package`).then((r) => {
+            if (r.status === 200) {
+                notifications.show({
+                    title: 'Success',
+                    message: `Data package created`,
+                    icon: <IconCheck />,
+                    color: 'green',
+                })
+            }
+        }).catch((err) => {
+            console.log(err);
+            notifications.show({
+                title: 'Failed to create data package',
+                message: err.response.data.error,
+                icon: <IconX />,
+                color: 'red',
+            })
+        });
+    }
+
     function getOrders() {
         axios.get<Response>(routes.orders, {params: {"page": activePage - 1}}).then((r) => {
             if (r.status === 200) {
@@ -137,7 +160,9 @@ export default function SkyFi() {
                                 <Text size="md"><Text span inherit fw={700}>Capture Date:</Text> {format(parseISO(order.archive.captureTimestamp), "yyyy-MM-dd HH:mm:ss xx")}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Cost:</Text> {`$${order.orderCost}`}</Text>
 
-                                <Button color="blue" fullWidth mt="md" radius="md">
+                                <Button color="blue" fullWidth mt="md" radius="md" onClick={() => {
+                                    createDataPackage(order.id);
+                                }}>
                                     Create Data Package
                                 </Button>
                             </Card>
@@ -161,7 +186,7 @@ export default function SkyFi() {
                 {orderCards}
             </Grid>
             <Modal opened={showImagePreview} onClose={() => setShowImagePreview(false)}>
-                <Image src={previewImageUrl} />
+                <Image src={previewImageUrl} radius="md" />
             </Modal>
             <Center pb="md"><Pagination total={totalPages} value={activePage} onChange={setPage} withEdges /></Center>
         </>
