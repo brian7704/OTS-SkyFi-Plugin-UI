@@ -1,11 +1,22 @@
 import {ReactElement, useEffect, useState} from "react";
 import axios from '../axios_config';
+import { formatISO, parseISO, format } from 'date-fns';
 import {routes} from '@/routes'
-import {Button, Card, Group, TableData, useComputedColorScheme, Text, Image, Grid} from "@mantine/core";
+import {
+    Button,
+    Card,
+    Group,
+    useComputedColorScheme,
+    Text,
+    Image,
+    Grid,
+    Pagination,
+    Center, LoadingOverlay
+} from "@mantine/core";
 import packageJson from '../../package.json'
 
 interface Response {
-    request: {};
+    request: Request;
     total: number;
     orders: Order[];
 }
@@ -57,23 +68,35 @@ interface Archive {
     tilesUrl: string;
 }
 
+interface Request {
+    orderType: string;
+    pageNumber: number;
+    pageSize: number;
+}
+
 export default function SkyFi() {
-    const [activePage, setPage] = useState(0);
+    const [activePage, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
     const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
     const [generatingDataPackage, setGeneratingDataPackage] = useState(false);
     const [orderCards, setOrderCards] = useState<ReactElement[]>();
 
     useEffect(() => {
-        getOrders()
-    }, []);
+        setShowLoadingOverlay(true);
+        getOrders();
+    }, [activePage]);
+
+    useEffect(() => {
+        setShowLoadingOverlay(false);
+    }, [orderCards]);
 
     function getOrders() {
-        axios.get<Response>(`${routes.orders}?page=${activePage}`).then((r) => {
+        axios.get<Response>(routes.orders, {params: {"page": activePage - 1}}).then((r) => {
             if (r.status === 200) {
-                console.log(r);
-
                 const orders: ReactElement[] = [];
+
+                setTotalPages(Math.ceil((r.data.total / r.data.request.pageSize)))
 
                 r.data.orders.map((order:Order) => {
                     let thumbnail_url = `${packageJson.basename}/ui/placeholder.jpg`;
@@ -85,7 +108,7 @@ export default function SkyFi() {
                     }
 
                     const order_card = <Grid.Col span={{ base: 12, md: 6, lg: 4}}>
-                            <Card shadow="sm" padding="lg" radius="md" withBorder>
+                            <Card shadow="lg" padding="lg" radius="md" withBorder>
                                 <Card.Section>
                                     <Image
                                         src={thumbnail_url}
@@ -94,16 +117,17 @@ export default function SkyFi() {
                                 </Card.Section>
 
                                 <Group justify="space-between" mt="md" mb="xs">
-                                    <Text fw={500}>{order.geocodeLocation}</Text>
+                                    <Text fw={700}>{`${order.geocodeLocation} - SkyFi-${order.orderCode}`}</Text>
                                 </Group>
 
-                                <Text size="sm" c="dimmed">
-                                    With Fjord Tours you can explore more of the magical fjord landscapes with tours and
-                                    activities on and around the fjords of Norway
-                                </Text>
+                                <Text size="md"><Text span inherit fw={700}>Provider:</Text> {order.archive.provider}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Resolution:</Text> {order.archive.resolution}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Cloud Coverage:</Text> {`${Math.round(order.archive.cloudCoveragePercent * 100)/100}%`}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Total Area:</Text> {`${order.archive.totalAreaSquareKm}KM²`}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Capture Date:</Text> {format(parseISO(order.archive.captureTimestamp), "yyyy-MM-dd HH:mm:ss xx")}</Text>
 
                                 <Button color="blue" fullWidth mt="md" radius="md">
-                                    Book classic tour now
+                                    Create Data Package
                                 </Button>
                             </Card>
                         </Grid.Col>
@@ -120,8 +144,12 @@ export default function SkyFi() {
     }
 
     return (
-        <Grid pt="md">
-            {orderCards}
-        </Grid>
+        <>
+            <LoadingOverlay visible={showLoadingOverlay} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+            <Grid p="md" m="md">
+                {orderCards}
+            </Grid>
+            <Center pb="md"><Pagination total={totalPages} value={activePage} onChange={setPage} withEdges /></Center>
+        </>
     )
 };
