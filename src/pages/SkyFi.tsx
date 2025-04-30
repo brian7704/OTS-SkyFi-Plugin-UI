@@ -1,6 +1,6 @@
 import {ReactElement, useEffect, useState} from "react";
 import axios from '../axios_config';
-import { formatISO, parseISO, format } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import {routes} from '@/routes'
 import {
     Button,
@@ -11,7 +11,7 @@ import {
     Image,
     Grid,
     Pagination,
-    Center, LoadingOverlay
+    Center, LoadingOverlay, Modal
 } from "@mantine/core";
 import packageJson from '../../package.json'
 
@@ -80,6 +80,8 @@ export default function SkyFi() {
     const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
     const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
     const [generatingDataPackage, setGeneratingDataPackage] = useState(false);
+    const [showImagePreview, setShowImagePreview] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
     const [orderCards, setOrderCards] = useState<ReactElement[]>();
 
     useEffect(() => {
@@ -90,6 +92,12 @@ export default function SkyFi() {
     useEffect(() => {
         setShowLoadingOverlay(false);
     }, [orderCards]);
+
+    useEffect(() => {
+        if (previewImageUrl) {
+            setShowImagePreview(true);
+        }
+    }, [previewImageUrl]);
 
     function getOrders() {
         axios.get<Response>(routes.orders, {params: {"page": activePage - 1}}).then((r) => {
@@ -113,6 +121,7 @@ export default function SkyFi() {
                                     <Image
                                         src={thumbnail_url}
                                         height={160}
+                                        onClick={() => {setPreviewImageUrl(thumbnail_url)}}
                                     />
                                 </Card.Section>
 
@@ -120,11 +129,13 @@ export default function SkyFi() {
                                     <Text fw={700}>{`${order.geocodeLocation} - SkyFi-${order.orderCode}`}</Text>
                                 </Group>
 
+                                <Text size="md"><Text span inherit fw={700}>Order Status:</Text> {order.status}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Provider:</Text> {order.archive.provider}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Resolution:</Text> {order.archive.resolution}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Cloud Coverage:</Text> {`${Math.round(order.archive.cloudCoveragePercent * 100)/100}%`}</Text>
-                                <Text size="md"><Text span inherit fw={700}>Total Area:</Text> {`${order.archive.totalAreaSquareKm}KM²`}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Total Area:</Text> {`${order.aoiSqkm} KM²`}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Capture Date:</Text> {format(parseISO(order.archive.captureTimestamp), "yyyy-MM-dd HH:mm:ss xx")}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Cost:</Text> {`$${order.orderCost}`}</Text>
 
                                 <Button color="blue" fullWidth mt="md" radius="md">
                                     Create Data Package
@@ -149,6 +160,9 @@ export default function SkyFi() {
             <Grid p="md" m="md">
                 {orderCards}
             </Grid>
+            <Modal opened={showImagePreview} onClose={() => setShowImagePreview(false)}>
+                <Image src={previewImageUrl} />
+            </Modal>
             <Center pb="md"><Pagination total={totalPages} value={activePage} onChange={setPage} withEdges /></Center>
         </>
     )
