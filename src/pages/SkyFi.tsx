@@ -102,6 +102,7 @@ export default function SkyFi() {
     }, [previewImageUrl]);
 
     function createDataPackage(id: string) {
+        setShowLoadingOverlay(true)
         axios.get(`${packageJson.basename}/${id}/data_package`).then((r) => {
             if (r.status === 200) {
                 notifications.show({
@@ -111,6 +112,7 @@ export default function SkyFi() {
                     color: 'green',
                 })
             }
+            setShowLoadingOverlay(false);
         }).catch((err) => {
             console.log(err);
             notifications.show({
@@ -119,6 +121,7 @@ export default function SkyFi() {
                 icon: <IconX />,
                 color: 'red',
             })
+
         });
     }
 
@@ -153,14 +156,14 @@ export default function SkyFi() {
                                 </Group>
 
                                 <Text size="md"><Text span inherit fw={700}>Order Status:</Text> {order.status}</Text>
-                                <Text size="md"><Text span inherit fw={700}>Provider:</Text> {order.archive.provider}</Text>
-                                <Text size="md"><Text span inherit fw={700}>Resolution:</Text> {order.archive.resolution}</Text>
-                                <Text size="md"><Text span inherit fw={700}>Cloud Coverage:</Text> {`${Math.round(order.archive.cloudCoveragePercent * 100)/100}%`}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Provider:</Text> {Object.hasOwn(order, "archive") ? order.archive.provider : ""}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Resolution:</Text> {Object.hasOwn(order, "archive") ? order.archive.resolution : ""}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Cloud Coverage:</Text> {Object.hasOwn(order, "archive") ? `${Math.round(order.archive?.cloudCoveragePercent * 100)/100}%` : ""}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Total Area:</Text> {`${order.aoiSqkm} KM²`}</Text>
-                                <Text size="md"><Text span inherit fw={700}>Capture Date:</Text> {format(parseISO(order.archive.captureTimestamp), "yyyy-MM-dd HH:mm:ss xx")}</Text>
+                                <Text size="md"><Text span inherit fw={700}>Capture Date:</Text> {Object.hasOwn(order, "archive") ? format(parseISO(order.archive?.captureTimestamp), "yyyy-MM-dd HH:mm:ss xx") : ""}</Text>
                                 <Text size="md"><Text span inherit fw={700}>Cost:</Text> {`$${order.orderCost}`}</Text>
 
-                                <Button color="blue" fullWidth mt="md" radius="md" onClick={() => {
+                                <Button color="blue" fullWidth mt="md" radius="md" disabled={order.status !== "PROCESSING_COMPLETE"} onClick={() => {
                                     createDataPackage(order.id);
                                 }}>
                                     Create Data Package
