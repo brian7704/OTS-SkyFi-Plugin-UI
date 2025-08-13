@@ -65,5 +65,5 @@
     "vitest": "^3.0.2"
   },
   "packageManager": "yarn@4.7.0",
-  "basename": "/api/plugins/ots-skyfi-plugin"
+  "basename": "/api/plugins/ots_skyfi_plugin"
 }
